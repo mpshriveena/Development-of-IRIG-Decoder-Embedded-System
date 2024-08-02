@@ -1,0 +1,68 @@
+;* PRU Tm acqn.  Acquires from PRU1 DI(r31) byte 1, Two channels at 28.57MHz
+;*      Transfers to PRU0. Channel packed to R10 and sent after acquiring 32 bits
+#include "tm-pru.inc"
+.global main
+GETBIT	.macro
+	lsl	r10,r10,1
+	qbbs	loop1?,r31.b1,0
+	jmp	loop2?
+loop1?:	set	r10,r10,0
+loop2?:	
+	nop	;* Total 4 instructions . 200/4=50 Mhz Sampling
+	.endm
+
+main:
+	ldi32	r0,PRU0_PRU1_INTERRUPT
+	sbco	&r0,c0,0x24,4
+	GETBIT	;* 
+	GETBIT	;*  First two bits before first xout.  Ensures first xout also has 32bit properly acquired.
+acquire:
+	GETBIT	;* 01
+	GETBIT	;* 02
+	GETBIT	;* 03
+	GETBIT  ;* 04
+	GETBIT	;* 05
+	GETBIT	;* 06
+	GETBIT	;* 07
+	GETBIT  ;* 08
+	GETBIT	;* 09
+	GETBIT	;* 10
+	GETBIT	;* 11
+	GETBIT	;* 12
+	GETBIT	;* 13
+	GETBIT  ;* 14
+	GETBIT  ;* 15
+	GETBIT  ;* 16
+	GETBIT  ;* 17
+	GETBIT  ;* 18
+	GETBIT  ;* 19
+	GETBIT  ;* 20
+	GETBIT  ;* 21
+	GETBIT  ;* 22
+	GETBIT  ;* 23
+	GETBIT  ;* 24
+	GETBIT  ;* 25
+	GETBIT  ;* 26
+	GETBIT  ;* 27
+	GETBIT  ;* 28
+	GETBIT  ;* 29 bit
+	lsl	r10,r10,1	;* 30 bit
+	qbbs	loop1a?,r31.b1,0
+	jmp	loop4a?
+loop1a?:	set	r10,r10,0
+loop4a:	
+	xout    10,&r10,4	;* This takes the place of one NOP. Send to PRU0
+	lsl	r10,r10,1	;* 31 bit
+	qbbs	loop1b?,r31.b1,0
+	jmp	loop4b?
+loop1b?:	set	r10,r10,0
+loop4b:	
+	ldi    R31.b0, PRU1_PRU0_INTERRUPT + 16    ; takes place of one NOP. Interrupt PRU0
+	lsl	r10,r10,1	;* 32 bit
+	qbbs	loop1c?,r31.b1,0
+	jmp	loop4c?
+loop1c?:	set	r10,r10,0
+loop4c:	
+	jmp    acquire		;* takes the place of  one NOP
+
+	halt			;* Not required since the program loops infinitely
